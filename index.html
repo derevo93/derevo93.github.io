@@ -31,6 +31,7 @@
             height: 40px;
             border-radius: 50%;
             margin-right: 15px;
+            object-fit: cover;
         }
         .chat-name {
             font-size: 18px;
@@ -100,14 +101,14 @@
 <body>
     <div class="chat-container">
         <div class="chat-header">
-            <img src="https://placekitten.com/100/100" alt="Леночка" class="profile-pic">
+            <img src="lena.jpg" alt="Леночка" class="profile-pic">
             <div>
                 <div class="chat-name">Леночка</div>
                 <div class="chat-status">онлайн</div>
             </div>
         </div>
         <div class="messages-container" id="messages">
-            <div class="message message-received">Привет! Я Леночка 😊</div>
+            <!-- Сообщения будут добавляться здесь -->
         </div>
         <div class="typing-indicator" id="typing">Леночка печатает...</div>
         <div class="input-container">
@@ -125,9 +126,36 @@
         const sendButton = document.getElementById('sendButton');
         const typingIndicator = document.getElementById('typing');
 
-        // Генерируем уникальный ID для чата
-        const chatId = Date.now().toString();
+        // Получаем или создаем chatId
+        let chatId = localStorage.getItem('chatId');
+        if (!chatId) {
+            chatId = Date.now().toString();
+            localStorage.setItem('chatId', chatId);
+        }
+
         let lastUpdateId = 0;
+
+        // Загружаем сохраненные сообщения
+        function loadMessages() {
+            const savedMessages = localStorage.getItem('messages');
+            if (savedMessages) {
+                const messages = JSON.parse(savedMessages);
+                messages.forEach(msg => {
+                    addMessage(msg.text, msg.isSent, false);
+                });
+            } else {
+                // Добавляем приветственное сообщение только если нет сохраненных сообщений
+                addMessage('Привет! Я Леночка 😊', false, true);
+            }
+        }
+
+        // Сохраняем сообщение в localStorage
+        function saveMessage(text, isSent) {
+            const savedMessages = localStorage.getItem('messages');
+            let messages = savedMessages ? JSON.parse(savedMessages) : [];
+            messages.push({ text, isSent });
+            localStorage.setItem('messages', JSON.stringify(messages));
+        }
 
         // Функция для отправки сообщения в Telegram
         async function sendToTelegram(message) {
@@ -161,14 +189,12 @@
                     data.result.forEach(update => {
                         lastUpdateId = Math.max(lastUpdateId, update.update_id);
                         
-                        // Проверяем, что сообщение от вас и содержит правильный ChatID
                         if (update.message && 
                             update.message.from.id.toString() === CHAT_ID &&
                             update.message.text.includes(`[Reply ${chatId}]`)) {
                             
-                            // Извлекаем текст ответа (убираем служебную информацию)
                             const replyText = update.message.text.replace(`[Reply ${chatId}]`, '').trim();
-                            addMessage(replyText, false);
+                            addMessage(replyText, false, true);
                         }
                     });
                 }
@@ -178,12 +204,16 @@
         }
 
         // Функция добавления сообщения в чат
-        function addMessage(text, isSent) {
+        function addMessage(text, isSent, save = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${isSent ? 'message-sent' : 'message-received'}`;
             messageDiv.textContent = text;
             messagesContainer.appendChild(messageDiv);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            if (save) {
+                saveMessage(text, isSent);
+            }
         }
 
         // Обработчик отправки сообщения
@@ -193,7 +223,6 @@
                 addMessage(message, true);
                 messageInput.value = '';
 
-                // Отправляем сообщение в Telegram
                 const sent = await sendToTelegram(message);
                 if (sent) {
                     typingIndicator.style.display = 'block';
@@ -211,6 +240,9 @@
                 sendMessage();
             }
         });
+
+        // Загружаем сохраненные сообщения при запуске
+        loadMessages();
 
         // Проверяем новые сообщения каждые 2 секунды
         setInterval(checkNewMessages, 2000);
