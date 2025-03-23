@@ -134,6 +134,88 @@
                 </div>
             </div>
 
+            <div class="question" data-question="6">
+                <p>6. Кого будем наказывать?</p>
+                <div class="options">
+                    <input type="radio" name="q6" value="1" required> Троссс<br>
+                    <input type="radio" name="q6" value="2"> Дерево<br>
+                    <input type="radio" name="q6" value="3"> Зоро<br>
+                    <input type="radio" name="q6" value="4"> Степа
+                </div>
+            </div>
+
+            <div class="question" data-question="7">
+                <p>7. Кто пидарас кончен?</p>
+                <div class="options">
+                    <input type="radio" name="q7" value="1" required> Зоро<br>
+                    <input type="radio" name="q7" value="2"> Степа<br>
+                    <input type="radio" name="q7" value="3"> Троссс<br>
+                    <input type="radio" name="q7" value="4"> Дерево
+                </div>
+            </div>
+
+            <div class="question" data-question="8">
+                <p>8. Лучший пловмен?</p>
+                <div class="options">
+                    <input type="radio" name="q8" value="1" required> Зоро<br>
+                    <input type="radio" name="q8" value="2"> Степа<br>
+                    <input type="radio" name="q8" value="3"> Дерево<br>
+                    <input type="radio" name="q8" value="4"> БОТ<br>
+                    <input type="radio" name="q8" value="5"> Троссс
+                </div>
+            </div>
+
+            <div class="question" data-question="9">
+                <p>9. Кому показать магазинчик?</p>
+                <div class="options">
+                    <input type="radio" name="q9" value="1" required> Даше<br>
+                    <input type="radio" name="q9" value="2"> Маше<br>
+                    <input type="radio" name="q9" value="3"> Оле<br>
+                    <input type="radio" name="q9" value="4"> Лене<br>
+                    <input type="radio" name="q9" value="5"> Вике
+                </div>
+            </div>
+
+            <div class="question" data-question="10">
+                <p>10. У кого папа жэстока работа?</p>
+                <div class="options">
+                    <input type="radio" name="q10" value="1" required> Баус<br>
+                    <input type="radio" name="q10" value="2"> Зоро<br>
+                    <input type="radio" name="q10" value="3"> Дерево<br>
+                    <input type="radio" name="q10" value="4"> Степа<br>
+                    <input type="radio" name="q10" value="5"> Троссс
+                </div>
+            </div>
+
+            <div class="question" data-question="11">
+                <p>11. Кого мы будем ебать попа?</p>
+                <div class="options">
+                    <input type="radio" name="q11" value="1" required> Вика<br>
+                    <input type="radio" name="q11" value="2"> Маша<br>
+                    <input type="radio" name="q11" value="3"> Даша<br>
+                    <input type="radio" name="q11" value="4"> Настя<br>
+                    <input type="radio" name="q11" value="5"> Оля
+                </div>
+            </div>
+
+            <div class="question" data-question="12">
+                <p>12. Сколько см в холодной?</p>
+                <div class="options">
+                    <input type="radio" name="q12" value="1" required> 21<br>
+                    <input type="radio" name="q12" value="2"> 22<br>
+                    <input type="radio" name="q12" value="3"> 5
+                </div>
+            </div>
+
+            <div class="question" data-question="13">
+                <p>13. Какой у вас IQ?</p>
+                <div class="options">
+                    <input type="radio" name="q13" value="1" required> 50-70<br>
+                    <input type="radio" name="q13" value="2"> 10-50<br>
+                    <input type="radio" name="q13" value="3"> 80+
+                </div>
+            </div>
+
             <button id="nextBtn">Дальше</button>
         </div>
         <div id="result"></div>
@@ -141,7 +223,7 @@
 
     <script>
         let currentQuestion = 1;
-        const totalQuestions = 5;
+        const totalQuestions = 13;
         const nextBtn = document.getElementById('nextBtn');
         const quiz = document.getElementById('quiz');
         const result = document.getElementById('result');
@@ -300,7 +382,15 @@
                 2: { question: "Какое имя вам нравится?", answers: { "1": "Наташа", "2": "Ксюша", "3": "Вика", "4": "Маша", "5": "Даша" } },
                 3: { question: "Кто БОТ?", answers: { "1": "Троссс", "2": "Дерево", "3": "Степа" } },
                 4: { question: "Ваш лучший друг?", answers: { "1": "Троссс", "2": "Дерево", "3": "Степа", "4": "Зоро", "5": "Механик" } },
-                5: { question: "Вы ищите жену?", answers: { "1": "Да", "2": "Нет" } }
+                5: { question: "Вы ищите жену?", answers: { "1": "Да", "2": "Нет" } },
+                6: { question: "Кого будем наказывать?", answers: { "1": "Троссс", "2": "Дерево", "3": "Зоро", "4": "Степа" } },
+                7: { question: "Кто пидарас кончен?", answers: { "1": "Зоро", "2": "Степа", "3": "Троссс", "4": "Дерево" } },
+                8: { question: "Лучший пловмен?", answers: { "1": "Зоро", "2": "Степа", "3": "Дерево", "4": "БОТ", "5": "Троссс" } },
+                9: { question: "Кому показать магазинчик?", answers: { "1": "Даше", "2": "Маше", "3": "Оле", "4": "Лене", "5": "Вике" } },
+                10: { question: "У кого папа жэстока работа?", answers: { "1": "Баус", "2": "Зоро", "3": "Дерево", "4": "Степа", "5": "Троссс" } },
+                11: { question: "Кого мы будем ебать попа?", answers: { "1": "Вика", "2": "Маша", "3": "Даша", "4": "Настя", "5": "Оля" } },
+                12: { question: "Сколько см в холодной?", answers: { "1": "21", "2": "22", "3": "5" } },
+                13: { question: "Какой у вас IQ?", answers: { "1": "50-70", "2": "10-50", "3": "80+" } }
             };
             
             return `<b>Вопрос ${questionNumber}:</b> ${questions[questionNumber].question}\n<b>Ответ:</b> ${questions[questionNumber].answers[value]}`;
