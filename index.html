@@ -252,23 +252,22 @@
                     data.result.forEach(async update => {
                         lastUpdateId = Math.max(lastUpdateId, update.update_id);
                         
-                        if (update.message && 
-                            update.message.from.id.toString() === CHAT_ID) {
-                            
-                            if (update.message.text && update.message.text.includes(`[Reply ${chatId}]`)) {
-                                const replyText = update.message.text.replace(`[Reply ${chatId}]`, '').trim();
-                                addMessage(replyText, false, true);
-                            } 
-                            else if (update.message.voice && update.message.caption && update.message.caption.includes(`[Reply ${chatId}]`)) {
-                                const fileInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${update.message.voice.file_id}`).then(r => r.json());
-                                const voiceUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileInfo.result.file_path}`;
-                                addVoiceMessage(voiceUrl, false);
-                            } 
-                            else if (update.message.photo && update.message.caption && update.message.caption.includes(`[Reply ${chatId}]`)) {
+                        if (update.message && update.message.from.id.toString() === CHAT_ID) {
+                            if (update.message.text) {
+                                if (!update.message.text.includes('[ChatID:')) {
+                                    addMessage(update.message.text, false, true);
+                                }
+                            }
+                            else if (update.message.photo) {
                                 const photo = update.message.photo[update.message.photo.length - 1];
                                 const fileInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${photo.file_id}`).then(r => r.json());
                                 const photoUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileInfo.result.file_path}`;
                                 addImageMessage(photoUrl, false);
+                            }
+                            else if (update.message.voice) {
+                                const fileInfo = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getFile?file_id=${update.message.voice.file_id}`).then(r => r.json());
+                                const voiceUrl = `https://api.telegram.org/file/bot${BOT_TOKEN}/${fileInfo.result.file_path}`;
+                                addVoiceMessage(voiceUrl, false);
                             }
                         }
                     });
